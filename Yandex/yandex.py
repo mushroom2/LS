@@ -19,6 +19,7 @@ class MyYandexDirectApi:
     def get_client_info(self, clientusername):
         # get Client information. Method based on Yandex Direct API Version 5. Client's login is required param
         # example: get_client_info('test1')
+
         data = {
             'method': 'get',
             'params': {
@@ -33,6 +34,7 @@ class MyYandexDirectApi:
 
     def get_client_list(self):
         # get Clients list for your account on Yandex Direct. Method based on Yandex Direct API Version 4 life.
+
         data = {
             'method': 'GetClientsList',
             'token': self.tokenv4,
@@ -44,6 +46,7 @@ class MyYandexDirectApi:
     def add_subclient(self, login, name, surname):
         # add new subclient for your account on Yandex Direct. Method based on Yandex Direct API Version 4 life.
         # method required Login, Name, Surname of NEW subclient
+
         data = {
             'method': 'CreateNewSubclient',
             'token': self.tokenv4,
@@ -73,6 +76,9 @@ class MyYandexDirectApi:
         # Get balance, name, id of marketing campaign, for client or subclient.
         # Method based on Yandex Direct API Version 5.
         # Client's login is required param
+        # Method can be extended. More information:
+        # 'https://tech.yandex.ru/direct/doc/ref-v5/campaigns/get-docpage/'
+
         data = {
             'method': 'get',
             'params': {
