@@ -6,7 +6,10 @@
 
 import json
 import urllib2
+from get_finance_token import f_t
+from datetime import datetime
 
+nowdate = datetime.now().strftime('%Y-%m-%d')
 
 class MyYandexDirectApi:
     # Initializations
@@ -15,6 +18,7 @@ class MyYandexDirectApi:
     tokenv5 = 'Bearer AQAAAAAa-BvqAAP0fRaW_IXzvUO7rqvPDojV67k'
     tokenv4 = 'AQAAAAAa-BvqAAP0fRaW_IXzvUO7rqvPDojV67k'
     login = 'python.avi'  # Your current login on Yandex Direct
+
 
     def get_client_info(self, clientusername):
         # get Client information. Method based on Yandex Direct API Version 5. Client's login is required param
@@ -72,7 +76,7 @@ class MyYandexDirectApi:
         jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
         self.response = urllib2.urlopen(self.urlv4l, jdata)
 
-    def get_campaign_balance(self, clientusername):  # sbx-pythonoI0dSg
+    def get_campaigns_balance(self, clientusername):  # sbx-pythonoI0dSg
         # Get balance, name, id of marketing campaign, for client or subclient.
         # Method based on Yandex Direct API Version 5.
         # Client's login is required param
@@ -104,8 +108,68 @@ class MyYandexDirectApi:
     def print_result(self):
         print self.response.read().decode('utf8')
 
+    def pay_campaigns(self, numb, campignid, summa, contractid='11111/00'):
+        data = {
+            'method': 'PayCampaigns',
+            'token': self.tokenv4,
+            'finance_token': f_t('PayCampaigns', numb),
+            'operation_num': numb,
+            'param': {
+                'Payments': [
+                    {'CampaignID': campignid, 'Sum': summa, 'Currency': 'USD'},
+                ],
+                'ContractID': contractid,
+                'PayMethod': 'Bank'
+            }
+        }
+        jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
+        self.response = urllib2.urlopen(self.urlv4l, jdata)
+
+
+    def get_campaigns_info(self, clientusername):
+        data = {
+            'method': 'get',
+            'params': {
+                "SelectionCriteria": {},
+                "FieldNames": ['Name', 'Id', 'StartDate', 'EndDate', 'Type', 'StatusPayment', 'Currency', 'Funds']
+
+            }
+        }
+        jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
+        req = urllib2.Request(self.urlv5 + 'campaigns', jdata,
+                              headers={"Authorization": self.tokenv5, "Client-Login": clientusername,
+                                       'Content-Type': 'application/json; charset=utf-8'})
+        self.response = urllib2.urlopen(req)
+
+    def get_campaign_stat(self, campaignid, startdate, enddate):
+        data = {
+            "method": "GetSummaryStat",
+            'token': self.tokenv4,
+            "param": {
+                "CampaignIDS": [campaignid],
+                "StartDate": startdate,
+                "EndDate": enddate,
+                "Currency": 'USD',
+                "IncludeVAT": 'Yes',
+                "IncludeDiscount": 'No'
+            }
+        }
+        jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
+        self.response = urllib2.urlopen(self.urlv4l, jdata)
+
+    def get_credit_limit(self, numb):
+        data = {
+            'method': 'GetCreditLimits',
+            'token': self.tokenv4,
+            'finance_token': f_t('GetCreditLimits', numb),
+            'operation_num': numb
+        }
+        jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
+        self.response = urllib2.urlopen(self.urlv4l, jdata)
 
 if __name__ == '__main__':
     res = MyYandexDirectApi()
-    res.get_campaign_balance('sbx-pythonoI0dSg')
+    res.get_campaigns_balance('sbx-pythonoI0dSg')
+    # res.pay_campaigns(1, 180669, 2000)
+    # O/N = 7
 
