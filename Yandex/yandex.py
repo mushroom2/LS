@@ -109,6 +109,11 @@ class MyYandexDirectApi:
         print self.response.read().decode('utf8')
 
     def pay_campaigns(self, numb, campignid, summa, contractid='11111/00'):
+        #Paying for campaigns using an advertising agency's credit limit.
+        #Method based on Yandex Direct API Version 4 life.
+        #Number of finance operation, campaign ID, sum of transaction- is required params
+        #You can change conctract ID. 'Test contract id' set by default
+
         data = {
             'method': 'PayCampaigns',
             'token': self.tokenv4,
@@ -125,8 +130,13 @@ class MyYandexDirectApi:
         jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
         self.response = urllib2.urlopen(self.urlv4l, jdata)
 
-
     def get_campaigns_info(self, clientusername):
+        # Returns the parameters of campaigns
+        # Method based on Yandex Direct API Version 5.
+        # Client's username is required param
+        # Method can be extended. More information:
+        # 'https://tech.yandex.ru/direct/doc/ref-v5/campaigns/get-docpage/'
+
         data = {
             'method': 'get',
             'params': {
@@ -143,6 +153,10 @@ class MyYandexDirectApi:
         self.response = urllib2.urlopen(req)
 
     def get_campaign_stat(self, campaignid, startdate, enddate):
+        # Returns statistics for the specified campaigns for each day of the specified period.
+        # Method based on Yandex Direct API Version 4 life.
+        # Campaign ID, date of start period, date of end period is required params
+        # format date: 'YYYY-MM-DD'
         data = {
             "method": "GetSummaryStat",
             'token': self.tokenv4,
@@ -185,6 +199,8 @@ class MyYandexDirectApi:
         self.response = urllib2.urlopen(req)
 
     def pay_for_period(self, startperiod, campaignid, numb):
+        # This method reflects expenses of the campaign during resent period up today.
+        # date of start period, campaign ID, numb of finance operation - is required params
         funcres = json.load(self.get_campaign_stat(campaignid, startperiod, self.nowdate), encoding='utf8')
         total = 0
         for i in funcres['data']:
