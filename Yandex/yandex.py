@@ -18,7 +18,7 @@ class MyYandexDirectApi:
     tokenv5 = 'Bearer AQAAAAAa-BvqAAP0fRaW_IXzvUO7rqvPDojV67k'
     tokenv4 = 'AQAAAAAa-BvqAAP0fRaW_IXzvUO7rqvPDojV67k'
     login = 'python.avi'  # Your current login on Yandex Direct
-
+    nowdate = datetime.now().strftime('%Y-%m-%d')
 
     def get_client_info(self, clientusername):
         # get Client information. Method based on Yandex Direct API Version 5. Client's login is required param
@@ -131,7 +131,8 @@ class MyYandexDirectApi:
             'method': 'get',
             'params': {
                 "SelectionCriteria": {},
-                "FieldNames": ['Name', 'Id', 'StartDate', 'EndDate', 'Type', 'StatusPayment', 'Currency', 'Funds']
+                "FieldNames": ['Name', 'Id', 'StartDate', 'EndDate', 'Type', 'StatusPayment', 'Currency',
+                               'Funds', 'State', 'Status']
 
             }
         }
@@ -156,6 +157,7 @@ class MyYandexDirectApi:
         }
         jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
         self.response = urllib2.urlopen(self.urlv4l, jdata)
+        return self.response
 
     def get_credit_limit(self, numb):
         data = {
@@ -167,9 +169,34 @@ class MyYandexDirectApi:
         jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
         self.response = urllib2.urlopen(self.urlv4l, jdata)
 
+    def resume_campaigns(self, campaignid, clientusername):
+        data = {
+            'method': 'resume',
+            'params': {
+                "SelectionCriteria": {
+                    "Ids": [campaignid]
+                }
+            }
+        }
+        jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
+        req = urllib2.Request(self.urlv5 + 'campaigns', jdata,
+                              headers={"Authorization": self.tokenv5, "Client-Login": clientusername,
+                                       'Content-Type': 'application/json; charset=utf-8'})
+        self.response = urllib2.urlopen(req)
+
+    def pay_for_period(self, startperiod, campaignid, numb):
+        funcres = json.load(self.get_campaign_stat(campaignid, startperiod, self.nowdate), encoding='utf8')
+        total = 0
+        for i in funcres['data']:
+            total += int(i['SumContext'])+int(i['SumSearch'])
+        print round(float(total)/1000000, 2)
+        self.pay_campaigns(numb, campaignid, round(float(total)/1000000, 2))
+
+
+
+
 if __name__ == '__main__':
     res = MyYandexDirectApi()
-    res.get_campaigns_balance('sbx-pythonoI0dSg')
-    # res.pay_campaigns(1, 180669, 2000)
-    # O/N = 7
-
+    res.pay_for_period('2016-01-06', 180669, 9)
+    res.print_result()
+    # O/N = 9
