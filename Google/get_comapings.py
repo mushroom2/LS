@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# coding=utf-8
 #
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
@@ -57,7 +58,7 @@ def main(client):
         if 'entries' in page:
             for campaign in page['entries']:
                 print ('Campaign with id \'%s\', name \'%s\', and status \'%s\' was '
-                       'found.' % (campaign['id'], campaign['name'],
+                       'found.'  % (campaign['id'], campaign['name'],
                                    campaign['status']))
         else:
             print 'No campaigns were found.'
@@ -68,5 +69,6 @@ def main(client):
 
 
 if __name__ == '__main__':
-    adwords_client = adwords.AdWordsClient.LoadFromStorage("C:\ls\googleads.yaml")  # Path to googleads.yaml
+    adwords_client = adwords.AdWordsClient.LoadFromStorage(
+        "/home/mushroom/Документы/ls/ya/LS/Google/googleads.yaml")  # Path to googleads.yaml
     main(adwords_client)
