@@ -10,6 +10,9 @@ from get_finance_token import f_t
 from datetime import datetime
 
 nowdate = datetime.now().strftime('%Y-%m-%d')
+myblockedips = ['195.39.210.0', '195.39.210.1', '195.39.210.2', '195.39.210.3', '195.39.210.4',
+                '195.39.210.5', '195.39.210.6', '195.39.210.7', '195.39.210.8', '195.39.210.9']
+
 
 class MyYandexDirectApi:
     # Initializations
@@ -18,7 +21,7 @@ class MyYandexDirectApi:
     tokenv5 = 'Bearer AQAAAAAa-BvqAAP0fRaW_IXzvUO7rqvPDojV67k'
     tokenv4 = 'AQAAAAAa-BvqAAP0fRaW_IXzvUO7rqvPDojV67k'
     login = 'python.avi'  # Your current login on Yandex Direct
-
+    nowdate = datetime.now().strftime('%Y-%m-%d')
 
     def get_client_info(self, clientusername):
         # get Client information. Method based on Yandex Direct API Version 5. Client's login is required param
@@ -109,6 +112,11 @@ class MyYandexDirectApi:
         print self.response.read().decode('utf8')
 
     def pay_campaigns(self, numb, campignid, summa, contractid='11111/00'):
+        # Paying for campaigns using an advertising agency's credit limit.
+        #Method based on Yandex Direct API Version 4 life.
+        #Number of finance operation, campaign ID, sum of transaction- is required params
+        #You can change conctract ID. 'Test contract id' set by default
+
         data = {
             'method': 'PayCampaigns',
             'token': self.tokenv4,
@@ -125,13 +133,19 @@ class MyYandexDirectApi:
         jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
         self.response = urllib2.urlopen(self.urlv4l, jdata)
 
-
     def get_campaigns_info(self, clientusername):
+        # Returns the parameters of campaigns
+        # Method based on Yandex Direct API Version 5.
+        # Client's username is required param
+        # Method can be extended. More information:
+        # 'https://tech.yandex.ru/direct/doc/ref-v5/campaigns/get-docpage/'
+
         data = {
             'method': 'get',
             'params': {
                 "SelectionCriteria": {},
-                "FieldNames": ['Name', 'Id', 'StartDate', 'EndDate', 'Type', 'StatusPayment', 'Currency', 'Funds']
+                "FieldNames": ['Name', 'Id', 'StartDate', 'EndDate', 'Type', 'StatusPayment', 'Currency',
+                               'Funds', 'State', 'Status', 'BlockedIps']
 
             }
         }
@@ -140,8 +154,13 @@ class MyYandexDirectApi:
                               headers={"Authorization": self.tokenv5, "Client-Login": clientusername,
                                        'Content-Type': 'application/json; charset=utf-8'})
         self.response = urllib2.urlopen(req)
+        return self.response
 
     def get_campaign_stat(self, campaignid, startdate, enddate):
+        # Returns statistics for the specified campaigns for each day of the specified period.
+        # Method based on Yandex Direct API Version 4 life.
+        # Campaign ID, date of start period, date of end period is required params
+        # format date: 'YYYY-MM-DD'
         data = {
             "method": "GetSummaryStat",
             'token': self.tokenv4,
@@ -156,6 +175,7 @@ class MyYandexDirectApi:
         }
         jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
         self.response = urllib2.urlopen(self.urlv4l, jdata)
+        return self.response
 
     def get_credit_limit(self, numb):
         data = {
@@ -167,9 +187,74 @@ class MyYandexDirectApi:
         jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
         self.response = urllib2.urlopen(self.urlv4l, jdata)
 
+    def resume_campaigns(self, campaignid, clientusername):
+        data = {
+            'method': 'resume',
+            'params': {
+                "SelectionCriteria": {
+                    "Ids": [campaignid]
+                }
+            }
+        }
+        jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
+        req = urllib2.Request(self.urlv5 + 'campaigns', jdata,
+                              headers={"Authorization": self.tokenv5, "Client-Login": clientusername,
+                                       'Content-Type': 'application/json; charset=utf-8'})
+        self.response = urllib2.urlopen(req)
+
+    # !ADD TRY/EXCEPT on future!
+    def pay_for_period(self, startperiod, campaignid, numb):
+        # This method reflects expenses of the campaign during resent period up today.
+        # date of start period, campaign ID, numb of finance operation - is required params
+        # Method based on Yandex Direct API Version 4 life.
+        funcres = json.load(self.get_campaign_stat(campaignid, startperiod, self.nowdate), encoding='utf8')
+        total = 0
+        for i in funcres['data']:
+            total += int(i['SumContext']) + int(i['SumSearch'])
+        print round(float(total) / 1000000, 2)
+        self.pay_campaigns(numb, campaignid, round(float(total) / 1000000, 2))
+
+    def get_campaign_list(self, clientusername):
+        funcres = json.load(self.get_campaigns_info(clientusername), encoding='utf8')
+        campaignsids = []
+        try:
+            for camp in funcres['result']['Campaigns']:
+                campaignsids.append(camp['Id'])
+            return campaignsids
+        except KeyError:
+            print funcres
+            return []
+
+    def update_ip_block_list(self, clientusername, iplist):
+        # Method based on Yandex Direct API Version 5
+        # Method updates a list of blocked  IP addresses for all of the client's campaigns
+        # No more then 25 ip addresses in list
+        # No more then 10 campaigns in one method`s call
+        # list of ip addresses- it`s a list of strings example: ['127.0.0.1', '192.168.1.101']
+
+        campids = self.get_campaign_list(clientusername)
+        if campids:
+            data = {
+                'method': 'update',
+                'params': {
+                    'Campaigns': []
+                }
+            }
+            for campid in campids:
+                data['params']['Campaigns'].append({'Id': campid, 'BlockedIps': {'Items': iplist}})
+
+            jdata = json.dumps(data, ensure_ascii=False).encode('utf8')
+            req = urllib2.Request(self.urlv5 + 'campaigns', jdata,
+                                  headers={"Authorization": self.tokenv5, "Client-Login": clientusername,
+                                           'Content-Type': 'application/json; charset=utf-8'})
+            self.response = urllib2.urlopen(req)
+        else:
+            print 'Invalid client`s username'
+
+
 if __name__ == '__main__':
     res = MyYandexDirectApi()
-    res.get_campaigns_balance('sbx-pythonoI0dSg')
-    # res.pay_campaigns(1, 180669, 2000)
-    # O/N = 7
-
+    res.update_ip_block_list('sbx-pythonoI0dSg', myblockedips)
+    res.print_result()
+    # O/N = 9
+    # sbx-pythonoI0dSg
